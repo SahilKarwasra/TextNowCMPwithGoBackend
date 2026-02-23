@@ -15,7 +15,9 @@ sealed interface AuthScreenDestination {
     @Serializable
     data object LoginScreen: AuthScreenDestination
     @Serializable
-    data object RegisterScreen: AuthScreenDestination
+    data class OtpVerification(val phoneNumber: String): AuthScreenDestination
+    @Serializable
+    data object PersonalDetails: AuthScreenDestination
 }
 
 sealed interface HomeScreenDestination {

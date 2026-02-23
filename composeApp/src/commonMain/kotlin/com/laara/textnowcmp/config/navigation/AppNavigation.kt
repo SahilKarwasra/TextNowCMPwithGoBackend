@@ -6,7 +6,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.laara.textnowcmp.features.auth.presentation.login.LoginRoot
-import com.laara.textnowcmp.features.auth.presentation.register.RegisterRoot
+import com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScreen.OtpVerificationRoot
+import com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScreen.personalDetail.PersonalDetailsRoot
 import com.laara.textnowcmp.features.splash.presentation.SplashRoot
 
 @Composable
@@ -32,11 +33,21 @@ private fun NavGraphBuilder.authGraph(appController: TextNowController) {
         startDestination = AuthScreenDestination.LoginScreen
     ) {
         composable<AuthScreenDestination.LoginScreen> {
-            LoginRoot()
+            LoginRoot(onNavigateToOtp = appController::navigate)
         }
-        composable<AuthScreenDestination.RegisterScreen> {
-            RegisterRoot()
+        composable<AuthScreenDestination.OtpVerification> {
+            OtpVerificationRoot(
+                onNavigateBack = appController::upPress,
+                onNavigate = appController::navigateToTop
+            )
         }
+        composable<AuthScreenDestination.PersonalDetails> {
+            PersonalDetailsRoot(
+                onNavigateToHome = {},
+                onNavigateBack = appController::upPress
+            )
+        }
+
     }
 }
 
