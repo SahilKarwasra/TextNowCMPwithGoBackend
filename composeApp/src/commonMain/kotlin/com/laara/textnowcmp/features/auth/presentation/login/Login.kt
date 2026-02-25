@@ -70,10 +70,11 @@ import com.laara.textnowcmp.config.navigation.AuthScreenDestination
 import com.laara.textnowcmp.core.theme.TextNowCMPTheme
 import com.laara.textnowcmp.core.util.ObserveAsEvents
 import com.laara.textnowcmp.core.util.allCountries
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun LoginRoot(
-    viewModel: LoginViewModel = viewModel(),
+    viewModel: LoginViewModel = koinViewModel(),
     onNavigateToOtp: (AuthScreenDestination) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()

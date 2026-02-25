@@ -64,12 +64,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.laara.textnowcmp.core.theme.TextNowCMPTheme
 import com.laara.textnowcmp.core.util.ObserveAsEvents
+import org.koin.compose.viewmodel.koinViewModel
 
 private const val OTP_LENGTH = 6
 
 @Composable
 fun OtpVerificationRoot(
-    viewModel: OtpVerificationViewModel = viewModel(),
+    viewModel: OtpVerificationViewModel = koinViewModel(),
     onNavigate: (Any) -> Unit,
     onNavigateBack: () -> Unit,
 ) {

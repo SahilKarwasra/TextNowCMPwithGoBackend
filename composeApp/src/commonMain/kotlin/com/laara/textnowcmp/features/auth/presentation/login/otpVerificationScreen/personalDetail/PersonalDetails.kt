@@ -72,10 +72,11 @@ import coil3.compose.AsyncImage
 import com.laara.textnowcmp.core.shared.rememberImagePickerLauncher
 import com.laara.textnowcmp.core.theme.TextNowCMPTheme
 import com.laara.textnowcmp.core.util.ObserveAsEvents
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun PersonalDetailsRoot(
-    viewModel: PersonalDetailsViewModel = viewModel(),
+    viewModel: PersonalDetailsViewModel = koinViewModel(),
     onNavigateToHome: () -> Unit,
     onNavigateBack: () -> Unit,
 ) {

@@ -36,13 +36,14 @@ import textnowcmp.composeapp.generated.resources.textnowdark
 import textnowcmp.composeapp.generated.resources.textnowlight
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
+import org.koin.compose.viewmodel.koinViewModel
 
 private val ExpoOut = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 private val ExpoIn  = CubicBezierEasing(0.7f, 0f, 0.84f, 0f)
 
 @Composable
 fun SplashRoot(
-    viewModel: SplashViewModel = viewModel(),
+    viewModel: SplashViewModel = koinViewModel(),
     navigateToTop: (Any) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
