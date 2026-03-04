@@ -26,7 +26,7 @@ uiAndroid = "1.10.3"
 datastore = "1.2.0"
 coil3-io = "3.3.0"
 ksp = "2.0.20-1.0.24"
-salite = "2.5.0-alpha11"
+sqlite = "2.5.0-alpha11"
 room = "2.7.0-alphal1"
 
 [libraries]
@@ -58,7 +58,8 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
-ktor-client-auth = { module = "jo.ktor:ktor-client-auth", version.ref = "ktor"}
+ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor"}
+ktor-client-websocket = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-content-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktor" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -101,6 +102,8 @@ ktor = [
     "ktor-client-logging",
     "ktor-client-content-encoding",
     "ktor-serialization-kotlinx-json",
+    "ktor-client-auth",
+    "ktor-client-websocket"
 ]
 coil = [
     "coil-compose",

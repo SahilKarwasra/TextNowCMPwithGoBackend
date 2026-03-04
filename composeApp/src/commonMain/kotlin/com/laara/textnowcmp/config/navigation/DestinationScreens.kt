@@ -24,6 +24,8 @@ sealed interface HomeScreenDestination {
     @Serializable
     data object HomeScreen: HomeScreenDestination
     @Serializable
+    data object NewChatScreen: HomeScreenDestination
+    @Serializable
     data object ChatScreen: HomeScreenDestination
     @Serializable
     data object ProfileScreen: HomeScreenDestination

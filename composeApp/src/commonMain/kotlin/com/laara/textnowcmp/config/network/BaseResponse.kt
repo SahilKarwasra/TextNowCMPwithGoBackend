@@ -4,6 +4,7 @@ import io.ktor.client.call.body
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import io.ktor.client.plugins.*
@@ -12,17 +13,17 @@ import kotlin.coroutines.cancellation.CancellationException
 
 @Serializable
 data class BaseResponse<T>(
-    val statusCode: Int,
+    val statusCode: Int = -1,
     val data: T? = null,
     val message: String? = null,
-    val success: Boolean
+    @SerialName("isSuccess")
+    val success: Boolean = false
 )
 
 
 suspend inline fun <reified T> responseToResult(
     isNotByData: Boolean,
     response: HttpResponse,
-    isSessionExpired: Boolean
 ): Result<T, DataError.Remote> {
     return when (response.status.value) {
         in 200..299 -> {
@@ -73,7 +74,7 @@ suspend inline fun <reified T> responseToResult(
                 Result.Error(
                     DataError.Remote(
                         type = DataError.Remote.Type.SERIALIZATION,
-                        message = "${e.message}"//"Failed to parse successful response"
+                        message = "${e.message}"
                     )
                 )
             }
@@ -81,34 +82,31 @@ suspend inline fun <reified T> responseToResult(
 
         408 -> Result.Error(DataError.Remote(DataError.Remote.Type.REQUEST_TIMEOUT))
         401 -> {
-            if (isSessionExpired) {
-                Result.Error(DataError.Remote(DataError.Remote.Type.UNAUTHORIZED))
-            } else {
-                try {
-                    val errorText = response.bodyAsText()
-                    val json = Json {
-                        ignoreUnknownKeys = true
-                        explicitNulls = false
-                        isLenient = true
-                        prettyPrint = true
-                        coerceInputValues = true
-                    }
-                    val parsed = json.decodeFromString<BaseResponse<List<String>>>(errorText)
+            try {
+                val errorText = response.bodyAsText()
+                val json = Json {
+                    ignoreUnknownKeys = true
+                    explicitNulls = false
+                    isLenient = true
+                    prettyPrint = true
+                    coerceInputValues = true
+                }
+                val parsed = json.decodeFromString<BaseResponse<kotlinx.serialization.json.JsonElement>>(errorText)
 
-                    Result.Error(
-                        DataError.Remote(
-                            type = DataError.Remote.Type.UNAUTHORIZED,
-                            message = parsed.message
-                        )
+                Result.Error(
+                    DataError.Remote(
+                        type = DataError.Remote.Type.UNAUTHORIZED,
+                        message = parsed.message
                     )
-                } catch (e: Exception) {
-                    Result.Error(
-                        DataError.Remote(
-                            type = DataError.Remote.Type.UNAUTHORIZED,
-                            message = "Unexpected error with no readable message"
-                        )
+                )
+            } catch (e: Exception) {
+                Result.Error(
+                    DataError.Remote(
+                        type = DataError.Remote.Type.UNAUTHORIZED,
+                        message = "Unexpected error with no readable message"
                     )
-                }            }
+                )
+            }
         }
         409 -> Result.Error(DataError.Remote(DataError.Remote.Type.CONFLICT))
         429 -> Result.Error(DataError.Remote(DataError.Remote.Type.TOO_MANY_REQUESTS))
@@ -124,7 +122,7 @@ suspend inline fun <reified T> responseToResult(
                     prettyPrint = true
                     coerceInputValues = true
                 }
-                val parsed = json.decodeFromString<BaseResponse<List<String>>>(errorText)
+                val parsed = json.decodeFromString<BaseResponse<kotlinx.serialization.json.JsonElement>>(errorText)
 
                 Result.Error(
                     DataError.Remote(
@@ -150,7 +148,6 @@ suspend inline fun <reified T> responseToResult(
 suspend inline fun <reified T> safeCall(
     isNotByData: Boolean = false,
     isDecrypt: Boolean = false,
-    isSessionExpired: Boolean = true,
     execute: () -> HttpResponse
 ): Result<T, DataError.Remote> {
 
@@ -183,7 +180,6 @@ suspend inline fun <reified T> safeCall(
         return responseToResult(
             response = e.response,
             isNotByData = isNotByData,
-            isSessionExpired = isSessionExpired
         )
     } catch (e: Exception) {
         return Result.Error(
@@ -197,6 +193,5 @@ suspend inline fun <reified T> safeCall(
     return responseToResult(
         response = response,
         isNotByData = isNotByData,
-        isSessionExpired = isSessionExpired
     )
 }

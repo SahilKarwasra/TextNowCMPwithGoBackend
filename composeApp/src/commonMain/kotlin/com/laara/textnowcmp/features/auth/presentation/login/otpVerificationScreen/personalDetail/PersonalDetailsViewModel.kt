@@ -2,8 +2,11 @@ package com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScr
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.laara.textnowcmp.config.network.onError
+import com.laara.textnowcmp.config.network.onSuccess
+import com.laara.textnowcmp.config.network.sendSnackbarOnError
+import com.laara.textnowcmp.features.auth.domain.repository.AuthRepository
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -12,7 +15,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class PersonalDetailsViewModel : ViewModel() {
+class PersonalDetailsViewModel(
+    private val authRepository: AuthRepository,
+) : ViewModel() {
 
     private var hasLoadedInitialData = false
 
@@ -75,12 +80,27 @@ class PersonalDetailsViewModel : ViewModel() {
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            delay(1200L) // Simulate network / DB call
-            _state.update { it.copy(isLoading = false) }
-            _events.send(PersonalDetailsEvent.NavigateToHome)
+
+            authRepository.saveProfile(
+                name = current.name.trim(),
+                email = current.email.trim(),
+            )
+                .onSuccess {
+                    _state.update { it.copy(isLoading = false) }
+                    _events.send(PersonalDetailsEvent.NavigateToHome)
+                }
+                .onError { error ->
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = error.message ?: "Failed to save profile"
+                        )
+                    }
+                }.sendSnackbarOnError(skipAuth = true)
         }
     }
-    fun isValidEmail(email: String): Boolean {
+
+    private fun isValidEmail(email: String): Boolean {
         if (email.isBlank()) return false
         val emailRegex = Regex(
             pattern = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"

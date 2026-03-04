@@ -52,4 +52,13 @@ class DataStoreRepository(
         preferences[REFRESH_TOKEN]
     }.flowOn(Dispatchers.IO)
 
+    suspend fun clearTokens() {
+        withContext(Dispatchers.IO) {
+            dataStore.edit { preferences ->
+                preferences.remove(ACCESS_TOKEN)
+                preferences.remove(REFRESH_TOKEN)
+            }
+        }
+    }
+
 }

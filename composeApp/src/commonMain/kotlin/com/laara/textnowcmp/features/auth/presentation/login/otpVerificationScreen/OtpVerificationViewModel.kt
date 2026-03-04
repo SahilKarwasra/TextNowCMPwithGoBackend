@@ -5,6 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.laara.textnowcmp.config.navigation.AuthScreenDestination
+import com.laara.textnowcmp.config.navigation.MainGraph
+import com.laara.textnowcmp.config.network.onError
+import com.laara.textnowcmp.config.network.onSuccess
+import com.laara.textnowcmp.config.network.sendSnackbarOnError
+import com.laara.textnowcmp.features.auth.domain.repository.AuthRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -18,6 +23,7 @@ import kotlinx.coroutines.launch
 
 class OtpVerificationViewModel(
     private val savedStateHandle: SavedStateHandle,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val args = savedStateHandle.toRoute<AuthScreenDestination.OtpVerification>()
@@ -65,13 +71,35 @@ class OtpVerificationViewModel(
             _state.update { it.copy(error = "Please enter the complete 6-digit code") }
             return
         }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            delay(1200L)
-            _state.update { it.copy(isLoading = false) }
-            _events.send(OtpVerificationEvent.Navigate(
-                AuthScreenDestination.PersonalDetails
-            ))
+
+            authRepository.verifyOtp(phone = phoneNumber, otp = otp)
+                .onSuccess { data ->
+                    _state.update { it.copy(isLoading = false) }
+
+                    // Tokens are already saved by AuthRepositoryImpl
+                    if (data.isNewUser) {
+                        // New user → navigate to personal details
+                        _events.send(
+                            OtpVerificationEvent.Navigate(AuthScreenDestination.PersonalDetails)
+                        )
+                    } else {
+                        // Existing user → navigate to home
+                        _events.send(
+                            OtpVerificationEvent.Navigate(MainGraph.HomeGraph)
+                        )
+                    }
+                }
+                .onError { error ->
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = error.message ?: "OTP verification failed"
+                        )
+                    }
+                }.sendSnackbarOnError(skipAuth = true)
         }
     }
 
@@ -79,7 +107,16 @@ class OtpVerificationViewModel(
         if (!_state.value.canResend) return
         viewModelScope.launch {
             _state.update { it.copy(otpCode = "", error = null) }
-            startResendCountdown()
+
+            authRepository.sendOtp(phone = phoneNumber)
+                .onSuccess {
+                    startResendCountdown()
+                }
+                .onError { error ->
+                    _state.update {
+                        it.copy(error = error.message ?: "Failed to resend OTP")
+                    }
+                }.sendSnackbarOnError(skipAuth = true)
         }
     }
 

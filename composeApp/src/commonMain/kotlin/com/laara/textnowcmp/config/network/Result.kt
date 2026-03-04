@@ -1,5 +1,7 @@
 package com.laara.textnowcmp.config.network
 
+import com.laara.textnowcmp.core.util.ui.UiEvent
+import com.laara.textnowcmp.core.util.ui.UiEventController
 
 
 sealed interface Result<out D, out E : Error> {
@@ -94,14 +96,14 @@ suspend inline fun <T> Result<T, DataError.Remote>.sendSnackbarOnError(
                     }
                 }
                 msg?.let {
-//                    UiEventController.send(
-//                        UiEvent.Snackbar(
-//                            message = msg,
-//                            onAction = {
-//                                callback(error)
-//                            }
-//                        )
-//                    )
+                    UiEventController.send(
+                        UiEvent.Snackbar(
+                            message = msg,
+                            onAction = {
+                                callback(error)
+                            }
+                        )
+                    )
                 }
             }
 

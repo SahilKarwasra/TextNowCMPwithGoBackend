@@ -27,6 +27,8 @@ import com.laara.textnowcmp.core.util.ui.UiEventController
 import com.laara.textnowcmp.features.auth.presentation.login.LoginRoot
 import com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScreen.OtpVerificationRoot
 import com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScreen.personalDetail.PersonalDetailsRoot
+import com.laara.textnowcmp.features.home.presentation.HomeRoot
+import com.laara.textnowcmp.features.home.presentation.newChat.NewChatRoot
 import com.laara.textnowcmp.features.splash.presentation.SplashRoot
 import kotlinx.coroutines.launch
 
@@ -150,14 +152,32 @@ private fun NavGraphBuilder.authGraph(appController: TextNowController) {
         }
         composable<AuthScreenDestination.PersonalDetails> {
             PersonalDetailsRoot(
-                onNavigateToHome = {},
+                onNavigateToHome = { appController.navigateToTop(MainGraph.HomeGraph) },
                 onNavigateBack = appController::upPress
             )
         }
-
     }
 }
 
 private fun NavGraphBuilder.homeGraph(appController: TextNowController) {
+    navigation<MainGraph.HomeGraph>(
+        startDestination = HomeScreenDestination.HomeScreen
+    ) {
+        composable<HomeScreenDestination.HomeScreen> {
+            HomeRoot(
+                onNavigateToNewChat = {
+                    appController.navigate(HomeScreenDestination.NewChatScreen)
+                }
+            )
+        }
+        composable<HomeScreenDestination.NewChatScreen> {
+            NewChatRoot(
+                onNavigateBack = appController::upPress,
+                onNavigateToChat = { userId ->
+                    // TODO: Navigate to chat screen with userId
+                },
+            )
+        }
+    }
 }
 
