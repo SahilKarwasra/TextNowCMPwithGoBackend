@@ -26,8 +26,10 @@ sealed interface HomeScreenDestination {
     @Serializable
     data object NewChatScreen: HomeScreenDestination
     @Serializable
-    data object ChatScreen: HomeScreenDestination
+    data class ChatScreen(
+        val conversationId: String,
+        val recipientName: String,
+    ) : HomeScreenDestination
     @Serializable
     data object ProfileScreen: HomeScreenDestination
 }
-

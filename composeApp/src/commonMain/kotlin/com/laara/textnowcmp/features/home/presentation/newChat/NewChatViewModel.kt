@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.laara.textnowcmp.config.network.onError
 import com.laara.textnowcmp.config.network.onSuccess
-import com.laara.textnowcmp.core.shared.ContactsReader
+import com.laara.textnowcmp.features.chat.domain.repository.ChatRepository
 import com.laara.textnowcmp.features.contacts.domain.repository.ContactsRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class NewChatViewModel(
-    private val contactsReader: ContactsReader,
     private val contactsRepository: ContactsRepository,
+    private val chatRepository: ChatRepository,
 ) : ViewModel() {
 
     private var hasLoadedInitialData = false
@@ -43,36 +43,15 @@ class NewChatViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
-            try {
-                val phones = contactsReader.getPhoneNumbers()
-                if (phones.isEmpty()) {
-                    _state.update {
-                        it.copy(isLoading = false, error = "No contacts found on device")
-                    }
-                    return@launch
+            launch {
+                contactsRepository.getOnboardedContacts().collect { contacts ->
+                    _state.update { it.copy(isLoading = false, onboardedContacts = contacts) }
                 }
+            }
 
-                contactsRepository.checkContacts(phones)
-                    .onSuccess { response ->
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                onboardedContacts = response.onboarded,
-                                notOnboardedPhones = response.notOnboarded,
-                            )
-                        }
-                    }
-                    .onError { error ->
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                error = error.message ?: "Failed to check contacts"
-                            )
-                        }
-                    }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(isLoading = false, error = e.message ?: "Something went wrong")
+            launch {
+                contactsRepository.getNotOnboardedContacts().collect { contacts ->
+                    _state.update { it.copy(isLoading = false, notOnboardedContacts = contacts) }
                 }
             }
         }
@@ -85,8 +64,28 @@ class NewChatViewModel(
             }
 
             is NewChatAction.OnContactClick -> {
+                // Create conversation via API, then navigate
                 viewModelScope.launch {
-                    _events.send(NewChatEvent.NavigateToChat(action.userId))
+                    _state.update { it.copy(isLoading = true) }
+
+                    chatRepository.createOrGetConversation(action.userId)
+                        .onSuccess { response ->
+                            _state.update { it.copy(isLoading = false) }
+                            _events.send(
+                                NewChatEvent.NavigateToChat(
+                                    conversationId = response.conversationId,
+                                    recipientName = response.participant.name,
+                                )
+                            )
+                        }
+                        .onError { error ->
+                            _state.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = error.message ?: "Failed to create conversation"
+                                )
+                            }
+                        }
                 }
             }
 

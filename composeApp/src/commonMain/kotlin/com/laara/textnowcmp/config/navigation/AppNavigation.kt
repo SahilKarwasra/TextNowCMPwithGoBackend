@@ -29,6 +29,7 @@ import com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScre
 import com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScreen.personalDetail.PersonalDetailsRoot
 import com.laara.textnowcmp.features.home.presentation.HomeRoot
 import com.laara.textnowcmp.features.home.presentation.newChat.NewChatRoot
+import com.laara.textnowcmp.features.home.presentation.chat.ChatRoot
 import com.laara.textnowcmp.features.splash.presentation.SplashRoot
 import kotlinx.coroutines.launch
 
@@ -167,15 +168,33 @@ private fun NavGraphBuilder.homeGraph(appController: TextNowController) {
             HomeRoot(
                 onNavigateToNewChat = {
                     appController.navigate(HomeScreenDestination.NewChatScreen)
-                }
+                },
+                onNavigateToChat = { conversationId, recipientName ->
+                    appController.navigate(
+                        HomeScreenDestination.ChatScreen(
+                            conversationId = conversationId,
+                            recipientName = recipientName,
+                        )
+                    )
+                },
             )
         }
         composable<HomeScreenDestination.NewChatScreen> {
             NewChatRoot(
                 onNavigateBack = appController::upPress,
-                onNavigateToChat = { userId ->
-                    // TODO: Navigate to chat screen with userId
+                onNavigateToChat = { conversationId, recipientName ->
+                    appController.navigate(
+                        HomeScreenDestination.ChatScreen(
+                            conversationId = conversationId,
+                            recipientName = recipientName,
+                        )
+                    )
                 },
+            )
+        }
+        composable<HomeScreenDestination.ChatScreen> {
+            ChatRoot(
+                onNavigateBack = appController::upPress,
             )
         }
     }

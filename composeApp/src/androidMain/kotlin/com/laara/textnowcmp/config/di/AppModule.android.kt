@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.room.Room
+import com.laara.textnowcmp.config.database.TextNowDatabase
 import com.laara.textnowcmp.config.datastore.DataStoreRepository
 import com.laara.textnowcmp.core.shared.ContactsReader
 import io.ktor.client.engine.HttpClientEngine
@@ -36,4 +38,12 @@ actual val platformModule = module {
 
     single { DataStoreRepository(get()) }
     single { ContactsReader(context = get()) }
+
+    single<TextNowDatabase> {
+        val context: Context = get()
+        Room.databaseBuilder<TextNowDatabase>(
+            context = context,
+            name = context.getDatabasePath("textnow.db").absolutePath,
+        ).build()
+    }
 }

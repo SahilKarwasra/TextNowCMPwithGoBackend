@@ -1,16 +1,23 @@
 package com.laara.textnowcmp.config.di
 
+import com.laara.textnowcmp.config.database.TextNowDatabase
 import com.laara.textnowcmp.config.network.installAuthInterceptor
 import com.laara.textnowcmp.core.util.TokenProvider
 import com.laara.textnowcmp.features.auth.data.remote.AuthApi
-import com.laara.textnowcmp.features.contacts.data.remote.ContactsApi
-import com.laara.textnowcmp.features.contacts.data.repository.ContactsRepositoryImpl
-import com.laara.textnowcmp.features.contacts.domain.repository.ContactsRepository
 import com.laara.textnowcmp.features.auth.data.repository.AuthRepositoryImpl
 import com.laara.textnowcmp.features.auth.domain.repository.AuthRepository
 import com.laara.textnowcmp.features.auth.presentation.login.LoginViewModel
 import com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScreen.OtpVerificationViewModel
 import com.laara.textnowcmp.features.auth.presentation.login.otpVerificationScreen.personalDetail.PersonalDetailsViewModel
+import com.laara.textnowcmp.features.chat.data.remote.ConversationsApi
+import com.laara.textnowcmp.features.chat.data.remote.WebSocketManager
+import com.laara.textnowcmp.features.chat.data.repository.ChatRepositoryImpl
+import com.laara.textnowcmp.features.chat.domain.repository.ChatRepository
+import com.laara.textnowcmp.features.contacts.data.remote.ContactsApi
+import com.laara.textnowcmp.features.contacts.data.repository.ContactsRepositoryImpl
+import com.laara.textnowcmp.features.contacts.domain.repository.ContactsRepository
+import com.laara.textnowcmp.features.home.presentation.HomeViewModel
+import com.laara.textnowcmp.features.home.presentation.chat.ChatViewModel
 import com.laara.textnowcmp.features.home.presentation.newChat.NewChatViewModel
 import com.laara.textnowcmp.features.splash.presentation.SplashViewModel
 import io.ktor.client.HttpClient
@@ -20,6 +27,7 @@ import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
@@ -32,6 +40,7 @@ import org.koin.dsl.module
 expect val platformModule: Module
 
 const val BASE_URL = "http://10.0.2.2:3000/api/v1"
+const val WS_BASE_URL = "ws://10.0.2.2:3000/ws"
 
 val sharedModule = module {
     includes(platformModule)
@@ -57,7 +66,29 @@ val sharedModule = module {
 
     // Contacts
     single { ContactsApi(baseUrl = BASE_URL) }
-    singleOf(::ContactsRepositoryImpl).bind<ContactsRepository>()
+    single<ContactsRepository> {
+        ContactsRepositoryImpl(
+            contactsApi = get(),
+            contactDao = get<TextNowDatabase>().contactDao(),
+        )
+    }
+
+    // Chat
+    single { ConversationsApi(baseUrl = BASE_URL) }
+    single {
+        WebSocketManager(
+            wsBaseUrl = WS_BASE_URL,
+            tokenProvider = get(),
+        )
+    }
+    single<ChatRepository> {
+        ChatRepositoryImpl(
+            conversationsApi = get(),
+            webSocketManager = get(),
+            conversationDao = get<TextNowDatabase>().conversationDao(),
+            messageDao = get<TextNowDatabase>().messageDao(),
+        )
+    }
 
     // ViewModels
     viewModelOf(::SplashViewModel)
@@ -65,6 +96,8 @@ val sharedModule = module {
     viewModelOf(::OtpVerificationViewModel)
     viewModelOf(::PersonalDetailsViewModel)
     viewModelOf(::NewChatViewModel)
+    viewModelOf(::HomeViewModel)
+    viewModelOf(::ChatViewModel)
 }
 
 fun createPlainHttpClient(engine: HttpClientEngine): HttpClient {
@@ -82,6 +115,7 @@ fun createPlainHttpClient(engine: HttpClientEngine): HttpClient {
             logger = Logger.DEFAULT
             level = LogLevel.ALL
         }
+        install(WebSockets)
     }
 }
 

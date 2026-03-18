@@ -20,7 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddHomeWork
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
@@ -40,19 +40,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.laara.textnowcmp.core.theme.TextNowCMPTheme
+import com.laara.textnowcmp.config.database.entity.ConversationEntity
+import com.laara.textnowcmp.core.util.ObserveAsEvents
+import com.laara.textnowcmp.core.shared.RequestContactsPermission
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun HomeRoot(
-    viewModel: HomeViewModel = viewModel(),
+    viewModel: HomeViewModel = koinViewModel(),
     onNavigateToNewChat: () -> Unit = {},
+    onNavigateToChat: (conversationId: String, recipientName: String) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Request contacts permission on first launch
+    RequestContactsPermission { granted ->
+        if (granted) {
+            viewModel.onAction(HomeAction.OnContactsPermissionGranted)
+        }
+    }
+
+    ObserveAsEvents(viewModel.events) { event ->
+        when (event) {
+            is HomeViewModel.HomeEvent.NavigateToChat ->
+                onNavigateToChat(event.conversationId, event.recipientName)
+        }
+    }
 
     HomeScreen(
         state = state,
@@ -74,22 +94,14 @@ fun HomeScreen(
         FilterChipItem("groups", "Groups"),
         FilterChipItem("favorites", "Favorites")
     )
-    var selectedFilter by remember {
-        mutableStateOf("all")
-    }
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
+    var selectedFilter by remember { mutableStateOf("all") }
+
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Column {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = "TextNow",
-                            style = MaterialTheme.typography.headlineLarge
-                        )
+                        Text("TextNow", style = MaterialTheme.typography.headlineLarge)
                     }
                 )
                 TextField(
@@ -114,34 +126,23 @@ fun HomeScreen(
                 FilterRow(
                     filters = filters,
                     selectedFilter = selectedFilter,
-                    onFilterSelected = {
-                        selectedFilter = it.id
-                    }
+                    onFilterSelected = { selectedFilter = it.id }
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                val chatList = listOf(
-                    ChatItem(
-                        id = "1",
-                        name = "Puchu",
-                        lastMessage = "Are you coming tomorrow?",
-                        time = "10:42 AM",
-                        unreadCount = 2
-                    ),
-                    ChatItem(
-                        id = "2",
-                        name = "PPP",
-                        lastMessage = "Send me the design file",
-                        time = "Yesterday",
-                        unreadCount = 0
-                    )
-                )
                 LazyColumn {
-                    items(chatList) { chat ->
+                    items(state.conversations, key = { it.conversationId }) { conversation ->
                         HomeChatItem(
-                            chat = chat,
-                            onClick = { }
+                            conversation = conversation,
+                            onClick = {
+                                onAction(
+                                    HomeAction.OnConversationClick(
+                                        conversationId = conversation.conversationId,
+                                        recipientName = conversation.recipientName,
+                                    )
+                                )
+                            }
                         )
                     }
                 }
@@ -152,65 +153,64 @@ fun HomeScreen(
                 modifier = Modifier
                     .padding(16.dp)
                     .align(Alignment.BottomEnd)
-
             ) {
-                Icon(
-                    Icons.Default.AddHomeWork,
-                    null
-                )
+                Icon(Icons.Default.Add, "New chat")
             }
         }
-
     }
 }
 
 @Composable
 fun HomeChatItem(
-    chat: ChatItem,
+    conversation: ConversationEntity,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
-
     Surface(
-        modifier = modifier
-            .fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick,
         color = MaterialTheme.colorScheme.surface
     ) {
-
         Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Surface(
                 modifier = Modifier.size(52.dp),
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {}
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        conversation.recipientName.split(" ").take(2)
+                            .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+                            .joinToString(""),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
 
             Spacer(Modifier.width(12.dp))
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-
                     Text(
-                        text = chat.name,
+                        text = conversation.recipientName.ifBlank { conversation.recipientPhone },
                         style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f),
                     )
-
                     Text(
-                        text = chat.time,
+                        text = formatConversationTime(conversation.lastMessageTimestamp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (conversation.unreadCount > 0)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
@@ -221,9 +221,8 @@ fun HomeChatItem(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Text(
-                        text = chat.lastMessage,
+                        text = conversation.lastMessage,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -231,23 +230,17 @@ fun HomeChatItem(
                         modifier = Modifier.weight(1f)
                     )
 
-                    if (chat.unreadCount > 0) {
-
+                    if (conversation.unreadCount > 0) {
                         Spacer(Modifier.width(8.dp))
-
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.primary
                         ) {
-
                             Text(
-                                text = chat.unreadCount.toString(),
+                                text = conversation.unreadCount.toString(),
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(
-                                    horizontal = 6.dp,
-                                    vertical = 2.dp
-                                )
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
                     }
@@ -258,75 +251,31 @@ fun HomeChatItem(
 }
 
 @Composable
-fun FilterRow(
-    filters: List<FilterChipItem>,
-    selectedFilter: String,
-    onFilterSelected: (FilterChipItem) -> Unit
-) {
-
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-
+fun FilterRow(filters: List<FilterChipItem>, selectedFilter: String, onFilterSelected: (FilterChipItem) -> Unit) {
+    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(filters) { filter ->
-
-            FilterChip(
-                title = filter.title,
-                isSelected = filter.id == selectedFilter,
-                onClick = { onFilterSelected(filter) },
-            )
-
+            FilterChip(title = filter.title, isSelected = filter.id == selectedFilter, onClick = { onFilterSelected(filter) })
         }
     }
 }
 
 @Composable
-fun FilterChip(
-    title: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun FilterChip(title: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val containerColor by animateColorAsState(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+    val textColor by animateColorAsState(if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
 
-    val containerColor by animateColorAsState(
-        if (isSelected)
-            MaterialTheme.colorScheme.primaryContainer
-        else
-            MaterialTheme.colorScheme.surfaceVariant
-    )
-
-    val textColor by animateColorAsState(
-        if (isSelected)
-            MaterialTheme.colorScheme.onPrimaryContainer
-        else
-            MaterialTheme.colorScheme.onSurfaceVariant
-    )
-
-    Surface(
-        modifier = modifier,
-        onClick = onClick,
-        color = containerColor,
-        shape = RoundedCornerShape(22.dp)
-    ) {
-
-        Text(
-            text = title,
-            color = textColor,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+    Surface(modifier = modifier, onClick = onClick, color = containerColor, shape = RoundedCornerShape(22.dp)) {
+        Text(title, color = textColor, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
     }
 }
 
-@Preview
-@Composable
-private fun Preview() {
-    TextNowCMPTheme {
-        HomeScreen(
-            state = HomeState(),
-            onAction = {}
-        )
-    }
+private fun formatConversationTime(epochMillis: Long): String {
+    if (epochMillis == 0L) return ""
+    return try {
+        val instant = Instant.fromEpochMilliseconds(epochMillis)
+        val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val hour = local.hour.toString().padStart(2, '0')
+        val minute = local.minute.toString().padStart(2, '0')
+        "$hour:$minute"
+    } catch (e: Exception) { "" }
 }

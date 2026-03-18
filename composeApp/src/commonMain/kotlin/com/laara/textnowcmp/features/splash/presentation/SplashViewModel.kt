@@ -47,11 +47,13 @@ class SplashViewModel(
         viewModelScope.launch {
             delay(2_500L)
             _state.update { it.copy(isNavigatingAway = true) }
-            delay(500L) // exit animation duration
+            delay(500L)
 
             val isLoggedIn = !tokenProvider.getAccessToken().isNullOrBlank()
 
-            // Fire-and-forget: sync contacts in background (does NOT block navigation)
+            println("AccessToken: ${tokenProvider.getAccessToken()}")
+            println("RefreshToken: ${tokenProvider.getRefreshToken()}")
+
             if (isLoggedIn) {
                 launch { syncContactsInBackground() }
             }
@@ -67,25 +69,17 @@ class SplashViewModel(
 
     private suspend fun syncContactsInBackground() {
         try {
-            val phones = contactsReader.getPhoneNumbers()
-            if (phones.isEmpty()) {
+            val deviceContacts = contactsReader.getContacts()
+            if (deviceContacts.isEmpty()) {
                 println("[ContactSync] No contacts found on device.")
                 return
             }
 
-            println("[ContactSync] Found ${phones.size} phone numbers on device. Checking with backend...")
+            println("[ContactSync] Found ${deviceContacts.size} contacts on device. Syncing...")
 
-            contactsRepository.checkContacts(phones)
+            contactsRepository.syncContacts(deviceContacts)
                 .onSuccess { response ->
-                    println("[ContactSync] ✅ Total: ${response.total}")
-                    println("[ContactSync] ── Onboarded (${response.onboardedCount}) ──")
-                    response.onboarded.forEach { user ->
-                        println("[ContactSync]   • ${user.name} (${user.phone}) — ${user.email}")
-                    }
-                    println("[ContactSync] ── Not Onboarded (${response.notOnboardedCount}) ──")
-                    response.notOnboarded.forEach { phone ->
-                        println("[ContactSync]   • $phone")
-                    }
+                    println("[ContactSync] ✅ Synced and cached! Total: ${response.total}, Onboarded: ${response.onboardedCount}, Not onboarded: ${response.notOnboardedCount}")
                 }
                 .onError { error ->
                     println("[ContactSync] ❌ API error: ${error.message}")

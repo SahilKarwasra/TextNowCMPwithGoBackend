@@ -1,9 +1,13 @@
 package com.laara.textnowcmp.core.shared
 
-/**
- * Platform-specific contact reader.
- * Returns a list of phone numbers from the device's contact list.
- */
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class DeviceContact(
+    val phone: String,
+    val name: String,
+)
+
 expect class ContactsReader {
-    suspend fun getPhoneNumbers(): List<String>
+    suspend fun getContacts(): List<DeviceContact>
 }
