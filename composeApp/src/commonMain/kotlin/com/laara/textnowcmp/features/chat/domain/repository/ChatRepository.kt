@@ -23,4 +23,5 @@ interface ChatRepository {
     fun disconnectWebSocket()
     suspend fun clearUnread(conversationId: String)
     suspend fun getRecipientUserId(conversationId: String): String?
+    suspend fun sendCallSignal(message: WsMessage)
 }

@@ -8,6 +8,7 @@ import androidx.room.Room
 import com.laara.textnowcmp.config.database.TextNowDatabase
 import com.laara.textnowcmp.config.datastore.DataStoreRepository
 import com.laara.textnowcmp.core.shared.ContactsReader
+import com.laara.textnowcmp.core.webrtc.WebRtcPeerConnectionFactory
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
 import okio.Path.Companion.toPath
@@ -46,4 +47,7 @@ actual val platformModule = module {
             name = context.getDatabasePath("textnow.db").absolutePath,
         ).build()
     }
+
+    // WebRTC
+    single { WebRtcPeerConnectionFactory(context = get()) }
 }

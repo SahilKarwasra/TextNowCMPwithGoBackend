@@ -8,6 +8,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.laara.textnowcmp.config.database.TextNowDatabase
 import com.laara.textnowcmp.config.datastore.DataStoreRepository
 import com.laara.textnowcmp.core.shared.ContactsReader
+import com.laara.textnowcmp.core.webrtc.WebRtcPeerConnectionFactory
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.darwin.Darwin
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -50,6 +51,9 @@ actual val platformModule = module {
             .setDriver(BundledSQLiteDriver())
             .build()
     }
+
+    // WebRTC
+    single { WebRtcPeerConnectionFactory() }
 }
 
 @OptIn(ExperimentalForeignApi::class)

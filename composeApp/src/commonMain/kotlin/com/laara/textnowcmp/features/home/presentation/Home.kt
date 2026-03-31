@@ -47,7 +47,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.laara.textnowcmp.config.database.entity.ConversationEntity
 import com.laara.textnowcmp.core.util.ObserveAsEvents
 import com.laara.textnowcmp.core.shared.RequestContactsPermission
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -272,7 +271,7 @@ fun FilterChip(title: String, isSelected: Boolean, onClick: () -> Unit, modifier
 private fun formatConversationTime(epochMillis: Long): String {
     if (epochMillis == 0L) return ""
     return try {
-        val instant = Instant.fromEpochMilliseconds(epochMillis)
+        val instant = kotlin.time.Instant.fromEpochMilliseconds(epochMillis)
         val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
         val hour = local.hour.toString().padStart(2, '0')
         val minute = local.minute.toString().padStart(2, '0')

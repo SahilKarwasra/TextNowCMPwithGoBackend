@@ -1,5 +1,6 @@
 package com.laara.textnowcmp.config.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -14,4 +15,6 @@ data class MessageEntity(
     val timestamp: Long,
     val isFromMe: Boolean,
     val status: String = "sent", // sent, delivered, read
+    @ColumnInfo(defaultValue = "text")
+    val messageType: String = "text", // text, call_log
 )

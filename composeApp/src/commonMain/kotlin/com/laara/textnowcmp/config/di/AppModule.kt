@@ -39,8 +39,8 @@ import org.koin.dsl.module
 
 expect val platformModule: Module
 
-const val BASE_URL = "http://10.0.2.2:3000/api/v1"
-const val WS_BASE_URL = "ws://10.0.2.2:3000/ws"
+const val BASE_URL = "https://textnowgobackend.onrender.com/api/v1"
+const val WS_BASE_URL = "wss://textnowgobackend.onrender.com/ws"
 
 val sharedModule = module {
     includes(platformModule)

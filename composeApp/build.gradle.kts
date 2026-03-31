@@ -39,6 +39,10 @@ kotlin {
             isStatic = true
         }
 
+        pod("WebRTC-SDK") {
+            version = "~> 125.6422.07"
+            moduleName = "WebRTC"
+        }
     }
     
     sourceSets {
@@ -49,6 +53,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.koin.android)
             implementation(libs.koin.androidx.compose)
+            implementation(libs.webrtc.android)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

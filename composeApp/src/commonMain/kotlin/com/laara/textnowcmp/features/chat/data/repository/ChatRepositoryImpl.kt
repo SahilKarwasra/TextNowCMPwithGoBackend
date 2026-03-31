@@ -186,6 +186,27 @@ class ChatRepositoryImpl(
                 val msgId = message.messageId ?: return
                 messageDao.updateStatus(msgId, "read")
             }
+
+            WsMessage.TYPE_CALL_LOG -> {
+                val callId = message.callId ?: return
+                val conversationId = message.conversationId ?: return
+                val callType = message.callType ?: WsMessage.CALL_TYPE_VOICE
+                val status = message.status ?: "unknown"
+                val direction = message.direction ?: "incoming"
+                val duration = message.duration ?: 0
+                messageDao.insert(
+                    MessageEntity(
+                        messageId = callId,
+                        conversationId = conversationId,
+                        senderId = message.participantId ?: "",
+                        content = "$callType|$status|$direction|$duration",
+                        timestamp = currentTimeMillis(),
+                        isFromMe = direction == "outgoing",
+                        status = "delivered",
+                        messageType = "call_log",
+                    )
+                )
+            }
         }
     }
 
@@ -226,5 +247,9 @@ class ChatRepositoryImpl(
 
     override suspend fun getRecipientUserId(conversationId: String): String? {
         return conversationDao.getConversationById(conversationId)?.recipientUserId
+    }
+
+    override suspend fun sendCallSignal(message: WsMessage) {
+        webSocketManager.send(message)
     }
 }
